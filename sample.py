@@ -1,9 +1,10 @@
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.edge.service import Service
+from selenium.webdriver.edge.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.edge.options import Options
 from time import sleep, time
 import random
 from io import BytesIO
@@ -13,8 +14,9 @@ from PIL import Image
 
 class BingBot:
 
-    def __init__(self):
-        self.driver = self.load_driver()
+    def __init__(self, driver_path):
+        self.driver_path = driver_path
+        self.driver = self.load_driver(self.driver_path)
 
     @staticmethod
     def send_to_clipboard(clip_type, data):
@@ -23,10 +25,11 @@ class BingBot:
         win32clipboard.SetClipboardData(clip_type, data)
         win32clipboard.CloseClipboard()
 
-    def load_driver(self):
+    def load_driver(self, driver_path):
+        service = Service(executable_path=driver_path)
         options = Options()
         options.add_experimental_option("detach", True)
-        driver = webdriver.Edge(executable_path=r'msedgedriver.exe', options=options)
+        driver = webdriver.Edge(service=service, options=options)
         return driver
 
     def change_tone(self, tone):
@@ -76,6 +79,10 @@ class BingBot:
             sleep(random.randint(1, 3) / 25)
             textarea.send_keys(char)
 
+    def send_query(self): # presses enter on the text area. equivalent to pressing the "send" button?
+        textarea = self.get_text_area()
+        self.driver.execute_script("arguments[0].scrollIntoView();", textarea)
+        self.driver.execute_script("arguments[0].click();", textarea)
         textarea.send_keys(Keys.ENTER)
 
     def get_button(self):
@@ -92,7 +99,22 @@ class BingBot:
         script = """return document.querySelector('cib-serp').shadowRoot.querySelector('cib-action-bar').shadowRoot.querySelector('cib-visual-search').shadowRoot.querySelector('input[class="paste-input"]')"""
         element = self.driver.execute_script(script)
         return element
-
+    
+    def is_img_pasted(self):
+        try:
+            prefix = """return """
+            script_list = """document.querySelector('cib-serp').shadowRoot.querySelector('cib-action-bar').shadowRoot.querySelector('cib-attachment-list').shadowRoot.querySelector('cib-file-item').shadowRoot.querySelector('div[class="thumbnail"]')"""
+            script_list = script_list.split('.')
+            for idx, _ in enumerate(script_list):
+                suffix = '.'.join(script_list[:idx+1])
+                script = prefix + suffix
+                element = self.driver.execute_script(script)
+                if element is None:
+                    return False
+            return True
+        except:
+            return False
+    
     @staticmethod
     def copy_img_to_clipboard(image_path):
         image = Image.open(image_path)
@@ -102,8 +124,9 @@ class BingBot:
         data = output.getvalue()[14:]
         output.close()
         BingBot.send_to_clipboard(win32clipboard.CF_DIB, data)
+    
 
-    def upload_img(self, message, image_path=None, image_url=None):
+    def upload_img(self, image_path=None, image_url=None):
         # Get the camera button
         button = self.get_button()
 
@@ -114,13 +137,11 @@ class BingBot:
         # Scroll to and click the camera button
         self.driver.execute_script("arguments[0].scrollIntoView();", button)
         self.driver.execute_script("arguments[0].click();", button)
-        sleep(0.2)
+        sleep(2)
 
         if image_url:
             # Proceed to paste the image URL
             paste_input = self.get_paste_input()
-            self.driver.execute_script("arguments[0].scrollIntoView();", paste_input)
-            self.driver.execute_script("arguments[0].click();", paste_input)
             paste_input.send_keys(image_url)
             paste_input.send_keys(Keys.ENTER)
 
@@ -128,12 +149,7 @@ class BingBot:
             # Existing code to handle the image_path
             self.copy_img_to_clipboard(image_path)
             paste_input = self.get_paste_input()
-            self.driver.execute_script("arguments[0].scrollIntoView();", paste_input)
-            self.driver.execute_script("arguments[0].click();", paste_input)
             paste_input.send_keys(Keys.CONTROL + "v")
-
-        sleep(0.2)
-        self.write_text(message)
 
     def is_bing_responding(self):
         script = """
@@ -175,12 +191,24 @@ class BingBot:
             return "Unable to get response. Try increasing the wait 'delay' or Force Reload Bing"
 
 
+
 # Usage:
-bot = BingBot()
-bot.driver.get('https://www.bing.com/search?q=Bing+AI&showconv=1&FORM=hpcodx')
-sleep(5)
-bot.change_tone('precise') # balanced, creative, precise
-bot.upload_img('what is this', None, 'https://media.discordapp.net/attachments/1049583034170621952/1164958033936400426/IMG_3010.jpg?ex=654e5537&is=653be037&hm=e69fc09b9540a70c3f08710d2f4cdb8cc6659112d242dcdb5ab2216efd7012e6&=&width=895&height=671')
-# get response
-response = bot.get_response()
-print(response)
+if __name__ == '__main__':
+    driver_path = r"C:\ai_sem_8\edgedriver_win32\msedgedriver.exe"
+    bing_chat_url = 'https://www.bing.com/search?q=Bing+AI&showconv=1&FORM=hpcodx'
+    
+    # if uploading local image, using image_path. for web image use image_url. keep the other none.
+    image_url = 'https://media.discordapp.net/attachments/1049583034170621952/1164958033936400426/IMG_3010.jpg?ex=654e5537&is=653be037&hm=e69fc09b9540a70c3f08710d2f4cdb8cc6659112d242dcdb5ab2216efd7012e6&=&width=895&height=671'
+    image_path = None
+    
+    bot = BingBot(driver_path)
+    bot.driver.get(bing_chat_url)
+    # sleep(5) # depends on the browser i guess.
+    bot.change_tone('precise') # balanced, creative, precise
+    bot.upload_img(image_path, image_url)
+    while bot.is_img_pasted() == False:
+            sleep(1)
+    bot.write_text('what is this?') 
+    bot.send_query()
+    response = bot.get_response() # get response
+    print(response)
