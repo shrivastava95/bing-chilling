@@ -189,26 +189,3 @@ class BingBot:
         except Exception as e:
             print(e)
             return "Unable to get response. Try increasing the wait 'delay' or Force Reload Bing"
-
-
-
-# Usage:
-if __name__ == '__main__':
-    driver_path = r"C:\ai_sem_8\edgedriver_win32\msedgedriver.exe"
-    bing_chat_url = 'https://www.bing.com/search?q=Bing+AI&showconv=1&FORM=hpcodx'
-    
-    # if uploading local image, using image_path. for web image use image_url. keep the other none.
-    image_url = 'https://media.discordapp.net/attachments/1049583034170621952/1164958033936400426/IMG_3010.jpg?ex=654e5537&is=653be037&hm=e69fc09b9540a70c3f08710d2f4cdb8cc6659112d242dcdb5ab2216efd7012e6&=&width=895&height=671'
-    image_path = None
-    
-    bot = BingBot(driver_path)
-    bot.driver.get(bing_chat_url)
-    # sleep(5) # depends on the browser i guess.
-    bot.change_tone('precise') # balanced, creative, precise
-    bot.upload_img(image_path, image_url)
-    while bot.is_img_pasted() == False:
-            sleep(1)
-    bot.write_text('what is this?') 
-    bot.send_query()
-    response = bot.get_response() # get response
-    print(response)
