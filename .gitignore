@@ -1,1 +1,5 @@
-*pycache*
+*__pycache__*
+drivers/msedgedriver.exe
+drivers/chromedriver.exe
+test_SetofMark.py
+images/*
