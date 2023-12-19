@@ -39,7 +39,7 @@ class BingBot:
                     .shadowRoot.querySelector('cib-tone-selector')
                     .shadowRoot.querySelector('button[class="tone-{tone}"]')"""
 
-        WebDriverWait(self.driver, 20).until(EC.presence_of_element_located((By.TAG_NAME, 'cib-serp')))
+        # WebDriverWait(self.driver, 20).until(EC.presence_of_element_located((By.TAG_NAME, 'cib-serp')))
 
         element = self.driver.execute_script(script)
         self.driver.execute_script("arguments[0].scrollIntoView();", element)
@@ -76,7 +76,7 @@ class BingBot:
         self.driver.execute_script("arguments[0].click();", textarea)
 
         for char in message:
-            sleep(random.randint(1, 3) / 25)
+            sleep(random.randint(1, 3) / 100)
             textarea.send_keys(char)
 
     def send_query(self): # presses enter on the text area. equivalent to pressing the "send" button?
@@ -163,7 +163,18 @@ class BingBot:
         return self.driver.execute_script(script) == 'false'
 
     def get_response(self, limit_counter=1):
-
+        
+        while True:
+            try:
+                script = f"""return document.querySelector('cib-serp')
+            .shadowRoot.querySelector('cib-conversation')
+            .shadowRoot.querySelectorAll('cib-chat-turn')[{limit_counter - 1}]
+            .shadowRoot.querySelector('cib-message-group[class="response-message-group"]')
+            .shadowRoot.querySelectorAll('cib-message[type="text"]');"""
+                break
+            except:
+                sleep(1)
+                
         while True:  # Wait until Bing finishes responding
             if not self.is_bing_responding(): break
             sleep(1)
